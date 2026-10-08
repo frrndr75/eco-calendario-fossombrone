@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ecocalendario Fossombrone</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#faf8f5;--fg:#222;--card:#fff;--mut:#777;--line:#e5e0d8;--acc:#e8832a;
+--org:#6b5750;--pla:#e8c33a;--vet:#3f6b4f;--sec:#9a98a8;--car:#3d5fa8;--met:#7bbcb4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#191816;--fg:#eee;--card:#262421;--mut:#a09a90;--line:#3a3733}}
+:root[data-theme="dark"]{--bg:#191816;--fg:#eee;--card:#262421;--mut:#a09a90;--line:#3a3733}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:14px}
+h1{font-size:18px;margin:0}.sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+#zs{display:flex;gap:8px;margin-bottom:12px}#zs button{flex:1;padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--fg);font-size:14px;font-weight:600}#zs button.on{border-color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.big{display:flex;align-items:center;gap:12px}
+.dot{width:44px;height:44px;border-radius:10px;flex:none}
+.big b{font-size:17px}.big small{display:block;color:var(--mut);font-size:13px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.nav button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:10px;width:44px;height:40px;font-size:18px}
+.nav button:disabled{opacity:.3}
+.nav strong{font-size:17px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dh{text-align:center;font-size:12px;color:var(--mut);padding:2px 0}
+.c{aspect-ratio:1;border-radius:8px;border:2px solid transparent;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--fg);background:transparent;padding:0}
+.c.k{color:#fff}.c.pla{color:#222}.c.met{color:#222}
+.c.sun{color:#c0392b}.c.k.sun{color:#fff}
+.c.today{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
+.c.sel{outline:3px solid var(--fg);outline-offset:1px}
+.leg{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;font-size:13px}
+.leg span{display:flex;align-items:center;gap:8px}.leg i{width:16px;height:16px;border-radius:4px;display:inline-block}
+.list{font-size:14px}.list div{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+.list div:last-child{border:0}.list i{width:14px;height:14px;border-radius:4px}.list em{margin-left:auto;color:var(--mut);font-style:normal;font-size:12px}
+.note{font-size:12px;color:var(--mut);line-height:1.4}
+</style>
+</head>
+<body>
+<h1>♻️ Ecocalendario 2026</h1>
+<div class="sub" id="sub"></div>
+<div id="zs"><button data-z="ar">🟠 Zona Arancio</button><button data-z="bl">🔵 Zona Blu</button></div>
+<div class="card" id="today"></div>
+<div class="card">
+  <div class="nav"><button id="prev">‹</button><strong id="mt"></strong><button id="next">›</button></div>
+  <div class="grid" id="grid"></div>
+  <div id="detail" style="margin-top:10px;font-size:14px;min-height:20px"></div>
+</div>
+<div class="card"><div style="font-weight:600;margin-bottom:8px;font-size:14px">Prossimi ritiri</div><div class="list" id="next7"></div></div>
+<div class="card"><div class="leg" id="leg"></div></div>
+<p class="note">Il ritiro è garantito anche nei festivi. Il secco va nel bidone con il trasponder; i pannolini vanno il giorno del secco. Dati trascritti dalle foto dei calendari cartacei: in caso di dubbio fa fede quello stampato.</p>
+<script>
+const T={org:["Organico","--org"],pla:["Plastica","--pla"],vet:["Vetro","--vet"],sec:["Secco non riciclabile","--sec"],car:["Carta e cartone","--car"],met:["Imb. metallici","--met"]};
+let D={};
+const key=(y,m,d)=>y+"-"+(m+1)+"-"+d;
+const Z_RULES={
+ ar:{name:"Zona Arancio",col:"#e8832a",
+  vetro:["9-9","9-23","10-7","10-21","11-4","11-18","12-2","12-16","12-30"],
+  carta:["9-16","9-30","10-14","10-28","11-11","11-25","12-9","12-23"],
+  met:["9-17","10-8","10-29","11-19","12-10","12-31"],
+  skip:[],ovr:{},
+  wd:{1:"pla",2:"org",6:"org"},thu:"met",fri:"sec"},
+ bl:{name:"Zona Blu",col:"#3d5fa8",
+  carta:["9-9","9-23","10-7","10-21","11-4","11-18","12-2","12-16","12-30"],
+  vetro:["9-16","9-30","10-14","10-28","11-11","11-25","12-9","12-23"],
+  met:["9-19","10-10","10-31","11-21","12-12"],
+  skip:["10-1"],ovr:{},
+  wd:{1:"org",2:"sec",4:"pla",5:"org"},sat:"met"}
+};
+function build(z){const R=Z_RULES[z],o={};
+ for(let m=8;m<12;m++){const n=new Date(2026,m+1,0).getDate();
+  for(let d=1;d<=n;d++){const dt=new Date(2026,m,d);if(dt<new Date(2026,8,7))continue;
+   const w=dt.getDay(),k=key(2026,m,d),s=(m+1)+"-"+d;let t=R.wd[w]||null;
+   if(z=="ar"){if(w==4)t=R.met.includes(s)?"met":null;if(w==5)t=R.skip.includes(s)?null:"sec";}
+   if(z=="bl"&&w==6)t=R.met.includes(s)?"met":null;
+   if(w==3)t=R.vetro.includes(s)?"vet":R.carta.includes(s)?"car":null;
+   if(z=="bl"&&R.skip.includes(s))t=null;
+   if(R.ovr[s])t=R.ovr[s];
+   if(t)o[k]=t;}}
+ return o}
+const MESI=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const GG=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
+const now=new Date(),tk=key(now.getFullYear(),now.getMonth(),now.getDate());
+let Z="ar";try{Z=localStorage.getItem("zona")||"ar"}catch(e){}
+D=build(Z);
+let mo=(now.getFullYear()==2026&&now.getMonth()>=8)?now.getMonth():8,sel=null;
+const $=id=>document.getElementById(id);
+const lab=(dt)=>{const t=new Date();t.setHours(0,0,0,0);const diff=Math.round((dt-t)/864e5);return diff==0?"Oggi":diff==1?"Domani":GG[dt.getDay()]+" "+dt.getDate()+" "+MESI[dt.getMonth()].slice(0,3).toLowerCase()};
+const chip=t=>t?`<i class="dot" style="background:var(${T[t][1]})"></i>`:`<i class="dot" style="background:var(--line)"></i>`;
+function renderToday(){
+ const t=new Date();t.setHours(0,0,0,0);let h="";
+ for(let i=0;i<2;i++){const d=new Date(t);d.setDate(t.getDate()+i);const k=key(2026,d.getMonth(),d.getDate());const ty=d.getFullYear()==2026?D[k]:null;
+  h+=`<div class="big" style="${i?'margin-top:10px':''}">${chip(ty)}<div><b>${ty?T[ty][0]:"Nessun ritiro"}</b><small>${i?"Domani":"Oggi"}${i&&ty?" · esponi entro le 06:00 (o la sera prima)":""}</small></div></div>`}
+ $("today").innerHTML=h}
+function renderGrid(){
+ $("mt").textContent=MESI[mo]+" 2026";$("prev").disabled=mo==8;$("next").disabled=mo==11;
+ let h=["L","M","M","G","V","S","D"].map(x=>`<div class="dh">${x}</div>`).join("");
+ const first=(new Date(2026,mo,1).getDay()+6)%7,n=new Date(2026,mo+1,0).getDate();
+ for(let i=0;i<first;i++)h+="<div></div>";
+ for(let d=1;d<=n;d++){const k=key(2026,mo,d),t=D[k],w=new Date(2026,mo,d).getDay();
+  const st=t?`background:var(${T[t][1]})`:"";
+  h+=`<button class="c ${t?'k '+t:''} ${w==0?'sun':''} ${k==tk?'today':''} ${sel==k?'sel':''}" style="${st}" data-k="${k}" data-d="${d}">${d}</button>`}
+ $("grid").innerHTML=h;
+ document.querySelectorAll(".c").forEach(b=>b.onclick=()=>{sel=b.dataset.k;const t=D[sel];
+  $("detail").innerHTML=`<b>${GG[new Date(2026,mo,+b.dataset.d).getDay()]} ${b.dataset.d} ${MESI[mo].toLowerCase()}</b>: ${t?T[t][0]:"nessun ritiro"}`;renderGrid()})}
+function renderNext(){const t=new Date();t.setHours(0,0,0,0);let h="",c=0;
+ for(let i=2;i<60&&c<6;i++){const d=new Date(t);d.setDate(t.getDate()+i);if(d.getFullYear()!=2026)break;
+  const ty=D[key(2026,d.getMonth(),d.getDate())];if(ty){c++;h+=`<div><i style="background:var(${T[ty][1]})"></i>${T[ty][0]}<em>${lab(d)}</em></div>`}}
+ $("next7").innerHTML=h||"<div>Nessun altro ritiro in calendario</div>"}
+$("leg").innerHTML=Object.values(T).map(v=>`<span><i style="background:var(${v[1]})"></i>${v[0]}</span>`).join("");
+$("prev").onclick=()=>{mo--;renderGrid()};$("next").onclick=()=>{mo++;renderGrid()};
+function setZone(z){Z=z;D=build(z);try{localStorage.setItem("zona",z)}catch(e){}
+ document.querySelectorAll("#zs button").forEach(b=>b.classList.toggle("on",b.dataset.z==z));
+ $("sub").textContent="Fossombrone · "+Z_RULES[z].name+" · esporre entro le 06:00";
+ document.documentElement.style.setProperty("--acc",Z_RULES[z].col);sel=null;$("detail").innerHTML="";
+ renderToday();renderGrid();renderNext()}
+document.querySelectorAll("#zs button").forEach(b=>b.onclick=()=>setZone(b.dataset.z));
+setZone(Z);
+</script>
+</body>
+</html>
